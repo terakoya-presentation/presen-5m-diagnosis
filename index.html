@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>プレゼン5M簡易診断</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="page">
+    <header class="page-header">
+      <div class="hero-content">
+        <p class="hero-kicker">伝わるを科学する</p>
+        <h1>プレゼン5M簡易診断</h1>
+        <p class="lead">あなたのプレゼンが伝わらない原因を、品質管理の視点で見える化します。</p>
+        <ol class="hero-flow" aria-label="診断の流れ">
+          <li>15問に回答</li>
+          <li>弱点を可視化</li>
+          <li>改善ポイントを確認</li>
+        </ol>
+      </div>
+    </header>
+
+    <section class="section" aria-labelledby="question-heading">
+      <h2 id="question-heading">深く考えず、今の状態に近いものを直観でお選びください。</h2>
+      <div class="question-guide" aria-label="回答の目安">
+        <p><strong>回答時間：約3分</strong></p>
+      </div>
+
+      <form id="diagnosis-form">
+        <div id="question-list"></div>
+        <button class="primary-button" type="submit">診断する</button>
+      </form>
+    </section>
+
+    <section class="section result-section" id="result" aria-labelledby="result-heading" hidden>
+      <h2 id="result-heading">診断結果</h2>
+      <div id="validation-message" class="validation-message" hidden></div>
+
+      <div id="diagnosis-output">
+        <div id="score-list" class="score-list"></div>
+
+        <div class="result-summary-grid">
+          <div class="result-box radar-result">
+            <h3>診断プロファイル</h3>
+            <div id="radar-chart" class="radar-chart" role="img" aria-label="5Mごとの点数を示すレーダーチャート"></div>
+          </div>
+
+          <div class="result-box lowest-result">
+            <h3 id="lowest-heading">最優先改善項目</h3>
+            <p id="lowest-axis" class="lowest-axis-list"></p>
+          </div>
+        </div>
+
+        <div class="result-box comment-result">
+          <h3 id="comment-heading">改善コメント</h3>
+          <div id="comment-text"></div>
+        </div>
+
+        <div class="result-box cta-result">
+          <h3>診断結果をLINEで相談する</h3>
+          <p>
+            この診断は簡易版です。
+          </p>
+          <p>
+            初回1回、診断結果の見方と最初に直すポイントを無料でお返しします。
+          </p>
+          <p>
+            実際のスライドを見ながらの具体的な添削は、有料メニューで承ります。
+          </p>
+          <p>
+            診断結果を入力した状態でLINE公式のトーク画面を開きます。
+            内容を確認して、そのまま送信してください。
+          </p>
+          <a class="cta-button" id="copy-consultation" href="#">LINEで無料相談する</a>
+          <p class="copy-status" id="copy-status" role="status" hidden></p>
+          <div class="manual-copy" id="manual-copy" hidden>
+            <p>この文章をコピーしてLINEに送ってください。</p>
+            <textarea id="manual-copy-text" readonly></textarea>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
