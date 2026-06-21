@@ -92,7 +92,7 @@ const copyConsultation = document.getElementById("copy-consultation");
 const copyStatus = document.getElementById("copy-status");
 const manualCopy = document.getElementById("manual-copy");
 const manualCopyText = document.getElementById("manual-copy-text");
-const LINE_OFFICIAL_ID = "%40YOUR_LINE_ID";
+const LINE_OFFICIAL_ID = "%40654pfdmi";
 let latestConsultationText = "";
 
 function createQuestions() {
