@@ -92,7 +92,14 @@ const copyConsultation = document.getElementById("copy-consultation");
 const copyStatus = document.getElementById("copy-status");
 const manualCopy = document.getElementById("manual-copy");
 const manualCopyText = document.getElementById("manual-copy-text");
-const LINE_OFFICIAL_ID = "%40654pfdmi";
+const LINE_OFFICIAL_ID = window.LINE_OFFICIAL_ID || "%40YOUR_LINE_ID";
+const LINE_DIAGNOSIS_TYPES = {
+  man: "MAN",
+  machine: "MACHINE",
+  material: "MATERIAL",
+  method: "METHOD",
+  mind: "MIND"
+};
 let latestConsultationText = "";
 
 function createQuestions() {
@@ -274,11 +281,25 @@ function drawRadarChart(scores) {
   );
 }
 
+function getLineDiagnosisType(scores) {
+  const scoreValues = Object.values(scores);
+  const lowestScore = Math.min(...scoreValues);
+  const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
+  const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
+
+  if (allScoresSame || lowestAxes.length !== 1) {
+    return "BALANCED";
+  }
+
+  return LINE_DIAGNOSIS_TYPES[lowestAxes[0].id];
+}
+
 function buildConsultationText(scores) {
   const scoreValues = Object.values(scores);
   const lowestScore = Math.min(...scoreValues);
   const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
   const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
+  const diagnosisType = getLineDiagnosisType(scores);
   const scoreLines = axes.map((axis) => (
     `${axis.name}（${axis.label}）：${scores[axis.id]}点 / 15点（${getLevel(scores[axis.id])}）`
   ));
@@ -295,7 +316,9 @@ function buildConsultationText(scores) {
       "",
       `改善コメント：${overallComment}`,
       "",
-      "この診断結果をもとに、初回無料相談をお願いします。"
+      "この診断結果をもとに、初回無料相談をお願いします。",
+      "",
+      `診断タイプ：${diagnosisType}`
     ].join("\n");
   }
 
@@ -314,7 +337,9 @@ function buildConsultationText(scores) {
     "改善コメント：",
     ...commentAxis.comment,
     "",
-    "この診断結果をもとに、初回無料相談をお願いします。"
+    "この診断結果をもとに、初回無料相談をお願いします。",
+    "",
+    `診断タイプ：${diagnosisType}`
   ].join("\n");
 }
 
