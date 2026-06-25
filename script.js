@@ -89,10 +89,14 @@ const lowestAxis = document.getElementById("lowest-axis");
 const commentHeading = document.getElementById("comment-heading");
 const commentText = document.getElementById("comment-text");
 const copyConsultation = document.getElementById("copy-consultation");
+const lineGuideText = document.getElementById("line-guide-text");
 const copyStatus = document.getElementById("copy-status");
 const manualCopy = document.getElementById("manual-copy");
 const manualCopyText = document.getElementById("manual-copy-text");
 const LINE_OFFICIAL_ID = window.LINE_OFFICIAL_ID || "%40YOUR_LINE_ID";
+const urlParams = new URLSearchParams(window.location.search);
+const fromLine = urlParams.get("from") === "line";
+const SAVED_DIAGNOSIS_KEY = "presen5mLatestDiagnosis";
 let latestConsultationText = "";
 
 function createQuestions() {
@@ -335,6 +339,81 @@ function getDiagnosisType(lowestAxes, allScoresSame) {
   return lowestAxes[0].id.toUpperCase();
 }
 
+function buildDisplayResultText(scores) {
+  const scoreValues = Object.values(scores);
+  const lowestScore = Math.min(...scoreValues);
+  const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
+  const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
+
+  if (allScoresSame) {
+    return [
+      "5項目すべてが同点です",
+      `各項目 ${scoreValues[0]}点 / 15点`,
+      getOverallComment(scoreValues[0])
+    ].join("\n");
+  }
+
+  return [
+    "最優先改善項目",
+    lowestAxes
+      .map((axis) => `${axis.name}：${axis.label}（${scores[axis.id]}点）`)
+      .join("、"),
+    "改善コメント",
+    ...lowestAxes[0].comment
+  ].join("\n");
+}
+
+function buildSavedDiagnosis(scores) {
+  const scoreValues = Object.values(scores);
+  const lowestScore = Math.min(...scoreValues);
+  const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
+  const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
+
+  return {
+    scores: { ...scores },
+    diagnosisType: getDiagnosisType(lowestAxes, allScoresSame),
+    resultText: buildDisplayResultText(scores),
+    consultationText: buildConsultationText(scores),
+    savedAt: new Date().toISOString()
+  };
+}
+
+function hasValidSavedScores(scores) {
+  return axes.every((axis) => (
+    Number.isFinite(scores[axis.id]) &&
+    scores[axis.id] >= 3 &&
+    scores[axis.id] <= 15
+  ));
+}
+
+function saveDiagnosisResult(scores) {
+  try {
+    localStorage.setItem(SAVED_DIAGNOSIS_KEY, JSON.stringify(buildSavedDiagnosis(scores)));
+  } catch (error) {
+    // 保存できない環境でも診断自体は続けます。
+  }
+}
+
+function getSavedDiagnosisResult() {
+  try {
+    const savedText = localStorage.getItem(SAVED_DIAGNOSIS_KEY);
+
+    if (!savedText) {
+      return null;
+    }
+
+    const savedDiagnosis = JSON.parse(savedText);
+
+    if (!savedDiagnosis || !hasValidSavedScores(savedDiagnosis.scores)) {
+      return null;
+    }
+
+    return savedDiagnosis;
+  } catch (error) {
+    return null;
+  }
+}
+
 function buildLineConsultationUrl(text) {
   return `https://line.me/R/oaMessage/${LINE_OFFICIAL_ID}/?${encodeURIComponent(text)}`;
 }
@@ -367,6 +446,30 @@ function scrollToResult() {
       behavior: "smooth",
       block: "start"
     });
+  });
+}
+
+function updateLineCtaText() {
+  if (fromLine) {
+    lineGuideText.textContent = "診断結果をLINEに送ると、詳細なタイプ別の改善ポイントが届きます。";
+    copyConsultation.textContent = "診断結果をLINEに送る";
+    return;
+  }
+
+  lineGuideText.textContent = "診断結果はLINEで受け取れます。未登録の方は、友だち追加後にこのページへ戻り、「LINEで診断結果を受け取る」から診断結果を送信してください。";
+  copyConsultation.textContent = "LINEで診断結果を受け取る";
+}
+
+function restoreSavedDiagnosis() {
+  const savedDiagnosis = getSavedDiagnosisResult();
+
+  if (!savedDiagnosis) {
+    return;
+  }
+
+  showResult(savedDiagnosis.scores, {
+    shouldSave: false,
+    shouldScroll: false
   });
 }
 
@@ -409,7 +512,9 @@ async function openLineConsultation(event) {
   );
 }
 
-function showResult(scores) {
+function showResult(scores, options = {}) {
+  const shouldSave = options.shouldSave !== false;
+  const shouldScroll = options.shouldScroll !== false;
   const scoreValues = Object.values(scores);
   const lowestScore = Math.min(...scoreValues);
   const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
@@ -439,6 +544,9 @@ function showResult(scores) {
 
   drawRadarChart(scores);
   latestConsultationText = buildConsultationText(scores);
+  if (shouldSave) {
+    saveDiagnosisResult(scores);
+  }
   commentText.innerHTML = "";
   copyStatus.hidden = true;
   manualCopy.hidden = true;
@@ -453,7 +561,9 @@ function showResult(scores) {
     paragraph.textContent = getOverallComment(scoreValues[0]);
     commentText.appendChild(paragraph);
     result.hidden = false;
-    scrollToResult();
+    if (shouldScroll) {
+      scrollToResult();
+    }
     return;
   }
 
@@ -470,7 +580,9 @@ function showResult(scores) {
   });
 
   result.hidden = false;
-  scrollToResult();
+  if (shouldScroll) {
+    scrollToResult();
+  }
 }
 
 form.addEventListener("submit", (event) => {
@@ -486,6 +598,8 @@ form.addEventListener("submit", (event) => {
   showResult(diagnosis.scores);
 });
 
+updateLineCtaText();
 copyConsultation.addEventListener("click", openLineConsultation);
 
 createQuestions();
+restoreSavedDiagnosis();
