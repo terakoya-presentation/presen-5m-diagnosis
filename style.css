@@ -114,6 +114,10 @@ body {
   margin-top: 18px;
 }
 
+#result {
+  scroll-margin-top: 24px;
+}
+
 .label {
   display: inline-block;
   margin: 0 0 12px;

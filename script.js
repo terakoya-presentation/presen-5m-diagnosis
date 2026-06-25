@@ -93,13 +93,6 @@ const copyStatus = document.getElementById("copy-status");
 const manualCopy = document.getElementById("manual-copy");
 const manualCopyText = document.getElementById("manual-copy-text");
 const LINE_OFFICIAL_ID = window.LINE_OFFICIAL_ID || "%40YOUR_LINE_ID";
-const LINE_DIAGNOSIS_TYPES = {
-  man: "MAN",
-  machine: "MACHINE",
-  material: "MATERIAL",
-  method: "METHOD",
-  mind: "MIND"
-};
 let latestConsultationText = "";
 
 function createQuestions() {
@@ -281,28 +274,23 @@ function drawRadarChart(scores) {
   );
 }
 
-function getLineDiagnosisType(scores) {
-  const scoreValues = Object.values(scores);
-  const lowestScore = Math.min(...scoreValues);
-  const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
-  const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
-
-  if (allScoresSame || lowestAxes.length !== 1) {
-    return "BALANCED";
-  }
-
-  return LINE_DIAGNOSIS_TYPES[lowestAxes[0].id];
-}
-
 function buildConsultationText(scores) {
   const scoreValues = Object.values(scores);
   const lowestScore = Math.min(...scoreValues);
   const allScoresSame = scoreValues.every((score) => score === scoreValues[0]);
   const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
-  const diagnosisType = getLineDiagnosisType(scores);
+  const diagnosisType = getDiagnosisType(lowestAxes, allScoresSame);
   const scoreLines = axes.map((axis) => (
     `${axis.name}（${axis.label}）：${scores[axis.id]}点 / 15点（${getLevel(scores[axis.id])}）`
   ));
+  const footerLines = [
+    "この診断結果をもとに、初回無料相談をお願いします。",
+    "",
+    "※より具体的に診断してほしい場合は、実際のスライドをお送りください。",
+    "資料の目的・聞き手・構成を確認したうえで、「どこを、なぜ、どう直すか」まで整理する有料メニューをご案内できます。",
+    "",
+    `診断タイプ：${diagnosisType}`
+  ];
 
   if (allScoresSame) {
     const overallComment = getOverallComment(scoreValues[0]);
@@ -316,9 +304,7 @@ function buildConsultationText(scores) {
       "",
       `改善コメント：${overallComment}`,
       "",
-      "この診断結果をもとに、初回無料相談をお願いします。",
-      "",
-      `診断タイプ：${diagnosisType}`
+      ...footerLines
     ].join("\n");
   }
 
@@ -337,10 +323,16 @@ function buildConsultationText(scores) {
     "改善コメント：",
     ...commentAxis.comment,
     "",
-    "この診断結果をもとに、初回無料相談をお願いします。",
-    "",
-    `診断タイプ：${diagnosisType}`
+    ...footerLines
   ].join("\n");
+}
+
+function getDiagnosisType(lowestAxes, allScoresSame) {
+  if (allScoresSame || lowestAxes.length !== 1) {
+    return "BALANCED";
+  }
+
+  return lowestAxes[0].id.toUpperCase();
 }
 
 function buildLineConsultationUrl(text) {
@@ -367,6 +359,15 @@ function showManualCopy(text, message) {
   manualCopy.hidden = false;
   manualCopyText.focus();
   manualCopyText.select();
+}
+
+function scrollToResult() {
+  requestAnimationFrame(() => {
+    result.scrollIntoView({
+      behavior: "smooth",
+      block: "start"
+    });
+  });
 }
 
 async function openLineConsultation(event) {
@@ -452,6 +453,7 @@ function showResult(scores) {
     paragraph.textContent = getOverallComment(scoreValues[0]);
     commentText.appendChild(paragraph);
     result.hidden = false;
+    scrollToResult();
     return;
   }
 
@@ -468,6 +470,7 @@ function showResult(scores) {
   });
 
   result.hidden = false;
+  scrollToResult();
 }
 
 form.addEventListener("submit", (event) => {
