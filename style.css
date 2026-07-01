@@ -537,9 +537,15 @@ h3 {
 }
 
 .radar-point {
-  fill: var(--color-orange);
+  fill: var(--color-blue);
   stroke: #fff;
   stroke-width: 2;
+}
+
+.radar-point.is-lowest {
+  fill: var(--color-orange);
+  filter: drop-shadow(0 0 5px rgba(217, 101, 35, 0.7));
+  stroke-width: 2.4;
 }
 
 .radar-label {
@@ -548,9 +554,20 @@ h3 {
   font-weight: 700;
 }
 
+.radar-label.is-lowest {
+  fill: var(--color-orange-dark);
+}
+
+.radar-label-score {
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
 .radar-scale-label {
   fill: var(--color-muted);
   font-size: 0.68rem;
+  opacity: 0.72;
+  pointer-events: none;
 }
 
 .lowest-result {

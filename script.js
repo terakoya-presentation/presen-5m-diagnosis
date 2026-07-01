@@ -56,18 +56,21 @@ const questions = [
   { id: 2, axis: "man", text: "自分が伝えたいことだけでなく、相手が判断したいことを意識している。" },
   { id: 3, axis: "man", text: "相手の立場・知識量・関心に合わせて説明を変えている。" },
   { id: 4, axis: "machine", text: "発表で使う画面、投影環境、オンライン会議ツールを事前に確認している。" },
-  { id: 5, axis: "machine", text: "画面共有や投影時に、文字が読める大きさになっている。" },
-  { id: 6, axis: "machine", text: "動画・アニメーション・音声などが止まっても、内容が伝わる準備をしている。" },
-  { id: 7, axis: "material", text: "1枚のスライドで一番伝えたいことが明確になっている。" },
-  { id: 8, axis: "material", text: "文字・色・図・グラフの使い方に、見せたい順番がある。" },
-  { id: 9, axis: "material", text: "情報を入れすぎず、聞き手が判断しやすい量に絞っている。" },
-  { id: 10, axis: "method", text: "結論、理由、具体例、次の行動の流れで説明できる。" },
-  { id: 11, axis: "method", text: "スライドの順番に、聞き手が納得しやすい流れがある。" },
-  { id: 12, axis: "method", text: "「だから何をしてほしいのか」まで明確に伝えている。" },
-  { id: 13, axis: "mind", text: "自分の意見や提案を、遠慮しすぎずに言える。" },
-  { id: 14, axis: "mind", text: "相手に配慮しながらも、必要な主張ははっきり伝えられる。" },
-  { id: 15, axis: "mind", text: "ダメ出しや質問を受けても、資料や自分を全否定されたとは捉えすぎない。" }
+  { id: 5, axis: "material", text: "1枚のスライドで一番伝えたいことが明確になっている。" },
+  { id: 6, axis: "material", text: "情報を入れすぎず、聞き手が判断しやすい量に絞っている。" },
+  { id: 7, axis: "method", text: "結論、理由、具体例、次の行動の流れで説明できる。" },
+  { id: 8, axis: "method", text: "「だから何をしてほしいのか」まで明確に伝えている。" },
+  { id: 9, axis: "mind", text: "相手に配慮しながらも、緊張や遠慮で必要な主張を曖昧にしすぎない。" },
+  { id: 10, axis: "mind", text: "ダメ出しや質問を受けても、資料や自分を全否定されたとは捉えすぎない。" }
 ];
+
+const axisQuestionCounts = questions.reduce((counts, question) => {
+  counts[question.axis] += 1;
+  return counts;
+}, axes.reduce((counts, axis) => {
+  counts[axis.id] = 0;
+  return counts;
+}, {}));
 
 const choices = [
   { value: 5, text: "とても当てはまる" },
@@ -172,12 +175,23 @@ function getOverallComment(score) {
   return "5項目すべてが優先改善です。資料・構成・伝え方を一度まとめて見直す必要があります。";
 }
 
-function calculateScores() {
+function convertScoresToFifteenPoint(rawScores) {
   const scores = {};
+
+  axes.forEach((axis) => {
+    const maxScore = axisQuestionCounts[axis.id] * 5;
+    scores[axis.id] = Math.floor(rawScores[axis.id] / maxScore * 15);
+  });
+
+  return scores;
+}
+
+function calculateScores() {
+  const rawScores = {};
   const unansweredQuestions = [];
 
   axes.forEach((axis) => {
-    scores[axis.id] = 0;
+    rawScores[axis.id] = 0;
   });
 
   for (const question of questions) {
@@ -192,11 +206,11 @@ function calculateScores() {
       continue;
     }
 
-    scores[question.axis] += Number(checked.value);
+    rawScores[question.axis] += Number(checked.value);
   }
 
   return {
-    scores,
+    scores: convertScoresToFifteenPoint(rawScores),
     unansweredQuestions
   };
 }
@@ -231,6 +245,7 @@ function drawRadarChart(scores) {
   const labelRadius = 142;
   const maxScore = 15;
   const gridLevels = [3, 6, 9, 12, 15];
+  const lowestScore = Math.min(...axes.map((axis) => scores[axis.id]));
 
   const gridPolygons = gridLevels.map((level) => {
     const levelRadius = radius * (level / maxScore);
@@ -245,27 +260,47 @@ function drawRadarChart(scores) {
     return `<line class="radar-axis" x1="${center}" y1="${center}" x2="${point.x.toFixed(1)}" y2="${point.y.toFixed(1)}"></line>`;
   }).join("");
 
+  const scaleLabels = gridLevels.map((level) => {
+    const y = center - radius * (level / maxScore);
+
+    return `<text class="radar-scale-label" x="${center + 18}" y="${y.toFixed(1)}" text-anchor="end" dominant-baseline="middle">${level}</text>`;
+  }).join("");
+
   const scorePoints = axes.map((axis, index) => {
     const scoreRadius = radius * (scores[axis.id] / maxScore);
 
     return getRadarPoint(index, scoreRadius, center);
   });
 
-  const scoreMarkers = scorePoints.map((point) => (
-    `<circle class="radar-point" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="5.5"></circle>`
-  )).join("");
+  const scoreMarkers = scorePoints.map((point, index) => {
+    const axis = axes[index];
+    const isLowest = scores[axis.id] === lowestScore;
+    const markerClass = isLowest ? "radar-point is-lowest" : "radar-point";
+    const markerRadius = isLowest ? 7.2 : 5.2;
+
+    return `<circle class="${markerClass}" cx="${point.x.toFixed(1)}" cy="${point.y.toFixed(1)}" r="${markerRadius}"></circle>`;
+  }).join("");
 
   const labels = axes.map((axis, index) => {
     const point = getRadarPoint(index, labelRadius, center);
+    const isLowest = scores[axis.id] === lowestScore;
+    const labelClass = isLowest ? "radar-label is-lowest" : "radar-label";
+    const x = point.x.toFixed(1);
+    const y = point.y.toFixed(1);
 
-    return `<text class="radar-label" x="${point.x.toFixed(1)}" y="${point.y.toFixed(1)}" text-anchor="middle" dominant-baseline="middle">${axis.name}</text>`;
+    return `
+      <text class="${labelClass}" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle">
+        <tspan x="${x}" dy="-0.35em">${axis.name}</tspan>
+        <tspan class="radar-label-score" x="${x}" dy="1.25em">${scores[axis.id]}点</tspan>
+      </text>
+    `;
   }).join("");
 
   radarChart.innerHTML = `
     <svg viewBox="0 0 360 360" aria-hidden="true">
       ${gridPolygons}
       ${axisLines}
-      <text class="radar-scale-label" x="${center + 6}" y="${(center - radius).toFixed(1)}">15</text>
+      ${scaleLabels}
       <polygon class="radar-area" points="${formatSvgPoints(scorePoints)}"></polygon>
       ${scoreMarkers}
       ${labels}
