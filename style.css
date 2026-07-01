@@ -599,10 +599,6 @@ h3 {
   background: var(--color-surface);
 }
 
-.comment-result p {
-  max-width: 68ch;
-}
-
 .result-box p:last-child {
   margin-bottom: 0;
 }
