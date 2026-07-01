@@ -99,8 +99,10 @@ const manualCopyText = document.getElementById("manual-copy-text");
 const LINE_OFFICIAL_ID = window.LINE_OFFICIAL_ID || "%40YOUR_LINE_ID";
 const urlParams = new URLSearchParams(window.location.search);
 const fromLine = urlParams.get("from") === "line";
+const shouldResetStoredDiagnosis = urlParams.get("reset") === "1";
 const SAVED_DIAGNOSIS_KEY = "presen5mLatestDiagnosis";
-const CHECKLIST_VERSION = "10q-v1";
+const CHECKLIST_VERSION = "10q-v2";
+const DIAGNOSIS_STORAGE_KEYS = [SAVED_DIAGNOSIS_KEY];
 let latestConsultationText = "";
 
 function createQuestions() {
@@ -439,7 +441,9 @@ function hasValidSavedMeta(savedDiagnosis) {
 
 function clearSavedDiagnosisResult() {
   try {
-    localStorage.removeItem(SAVED_DIAGNOSIS_KEY);
+    DIAGNOSIS_STORAGE_KEYS.forEach((key) => {
+      localStorage.removeItem(key);
+    });
   } catch (error) {
     // 削除できない環境でも画面表示は続けます。
   }
@@ -667,4 +671,10 @@ updateLineCtaText();
 copyConsultation.addEventListener("click", openLineConsultation);
 
 createQuestions();
-restoreSavedDiagnosis();
+form.reset();
+
+if (shouldResetStoredDiagnosis) {
+  clearSavedDiagnosisResult();
+} else {
+  restoreSavedDiagnosis();
+}
