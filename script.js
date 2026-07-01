@@ -100,6 +100,7 @@ const LINE_OFFICIAL_ID = window.LINE_OFFICIAL_ID || "%40YOUR_LINE_ID";
 const urlParams = new URLSearchParams(window.location.search);
 const fromLine = urlParams.get("from") === "line";
 const SAVED_DIAGNOSIS_KEY = "presen5mLatestDiagnosis";
+const CHECKLIST_VERSION = "10q-v1";
 let latestConsultationText = "";
 
 function createQuestions() {
@@ -405,6 +406,9 @@ function buildSavedDiagnosis(scores) {
   const lowestAxes = axes.filter((axis) => scores[axis.id] === lowestScore);
 
   return {
+    version: CHECKLIST_VERSION,
+    questionCount: questions.length,
+    axisCount: axes.length,
     scores: { ...scores },
     diagnosisType: getDiagnosisType(lowestAxes, allScoresSame),
     resultText: buildDisplayResultText(scores),
@@ -414,11 +418,31 @@ function buildSavedDiagnosis(scores) {
 }
 
 function hasValidSavedScores(scores) {
+  if (!scores || Object.keys(scores).length !== axes.length) {
+    return false;
+  }
+
   return axes.every((axis) => (
     Number.isFinite(scores[axis.id]) &&
     scores[axis.id] >= 3 &&
     scores[axis.id] <= 15
   ));
+}
+
+function hasValidSavedMeta(savedDiagnosis) {
+  return (
+    savedDiagnosis.version === CHECKLIST_VERSION &&
+    savedDiagnosis.questionCount === questions.length &&
+    savedDiagnosis.axisCount === axes.length
+  );
+}
+
+function clearSavedDiagnosisResult() {
+  try {
+    localStorage.removeItem(SAVED_DIAGNOSIS_KEY);
+  } catch (error) {
+    // 削除できない環境でも画面表示は続けます。
+  }
 }
 
 function saveDiagnosisResult(scores) {
@@ -439,12 +463,18 @@ function getSavedDiagnosisResult() {
 
     const savedDiagnosis = JSON.parse(savedText);
 
-    if (!savedDiagnosis || !hasValidSavedScores(savedDiagnosis.scores)) {
+    if (
+      !savedDiagnosis ||
+      !hasValidSavedMeta(savedDiagnosis) ||
+      !hasValidSavedScores(savedDiagnosis.scores)
+    ) {
+      clearSavedDiagnosisResult();
       return null;
     }
 
     return savedDiagnosis;
   } catch (error) {
+    clearSavedDiagnosisResult();
     return null;
   }
 }
